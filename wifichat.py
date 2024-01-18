@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-​
 # to-do: send files (receive in sync order and with integrity)
+
+
 import threading, time, sys, base64, logging, subprocess
 import textwrap
 from Crypto.Cipher import AES
@@ -13,6 +15,9 @@ from scapy.all import *
 from scapy.all import Dot11
 from scapy.all import Dot11Elt
 from scapy.all import Dot11ProbeReq
+from scapy.all import RadioTap
+import signal
+import os
 
 
 # User defined variables
@@ -52,7 +57,7 @@ def InitMon(interface):
                 time.sleep(0.3)
             except OSError as e:
                 logging.error("Could not delete monitor interface %s" % intfmon)
-                os.kill(os.getpid(), SIGINT)
+                os.kill(os.getpid(), signal.SIGINT)
                 return False
         try:
             # create monitor interface using iw
@@ -68,9 +73,9 @@ def InitMon(interface):
             time.sleep(0.2)
             os.system("ifconfig %s up" %interface)
             if verbose > 1: logging.debug("Creating monitor VAP %s for parent %s..." %(intfmon, interface))
-        except OsError as e:
+        except OSError as e:
             logging.error("Could not create monitor %s" % intfmon)
-            os.kill(os.getpid(), SIGINT)
+            os.kill(os.getpid(), signal.SIGINT)
             return False
     return True
 
@@ -452,7 +457,7 @@ try:
         privateircname = sys.argv[3]
         print("Using chat room: %s" % privateircname)
     else:
-        privateircname = raw_input("Define private IRC channel name: ")
+        privateircname = input("Define private IRC channel name: ")
     privateirc = (privateircname * ((16/len(privateircname))+1))[:16]
 
     # Define private IRC channel password
@@ -460,7 +465,7 @@ try:
         privateirckey=sys.argv[4]
         print("Using encryption key [AES ECB]: %s" % privateirckey)
     else:
-        privateirckey = raw_input("Define private IRC robust password: ")
+        privateirckey = input("Define private IRC robust password: ")
     enckey=(privateirckey * ((16/len(privateirckey))+1))[:16]
 
     # If history is on, it will keep caching commands to that file
@@ -512,7 +517,7 @@ except KeyboardInterrupt:
 try:
     PacketProcessSend("%s joined the chat room: %s" %(username,privateircname)) ## User entering group
     while 1:
-        chat = raw_input()
+        chat = input()
         if chat != ":exit:":
             sys.stdout.write("\033[F") # Cursor up one line
             if chat != '':
