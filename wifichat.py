@@ -10,6 +10,10 @@ from datetime import datetime
 from random import randint
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import * 
+from scapy.all import Dot11
+from scapy.all import Dot11Elt
+from scapy.all import Dot11ProbeReq
+
 
 # User defined variables
 verbose=0 ## debug level (1-3)
@@ -122,7 +126,8 @@ def filecrypt(filename,chunksize):
             fileContent = payload.read()
     except:
         fileContent=''
-        print ":chat: cannot open requested file: %s" %filename
+        #convert to python3
+        print(":chat: cannot open requested file: %s" % filename)
         return ''
     try:
         parts = textwrap.wrap(fileContent, chunksize)
@@ -135,7 +140,7 @@ def filecrypt(filename,chunksize):
             encoded_parts.add(encoded_part)
         return encoded_parts
     except Exception as e:
-        print ":chat: error disecting file: %s. %s" %(filename, e.message)
+        print (":chat: error disecting file: %s. %s" %(filename, e.message))
         return ''
 
 ## cmdcrypt: function to execute shell command, split output in parts and encrypt them 
@@ -148,7 +153,7 @@ def cmdcrypt(execute,chunksize):
         parts = parts.splitlines() 
         encoded_parts=set()
         for part in parts:
-            print ":chat: executed [%s] -> %s" %(execute, part)
+            print (":chat: executed [%s] -> %s" %(execute, part))
             lastpadd = len(part) % 16
             if lastpadd > 0: part = part + (' ' * (16 - lastpadd))
             encoded_part = base64.b64encode(cipher.encrypt(part))
@@ -174,7 +179,7 @@ def packetSniffer():
     try:
         sniff(iface=intfmon, prn=PacketHandler, store=False, lfilter=lambda pkt: (Dot11ProbeReq in pkt))
     except Exception as e:
-        print "Error starting sniffer! %s" %e.message
+        print ("Error starting sniffer! %s" %e.message)
         exit()
 
 
@@ -205,10 +210,10 @@ def PacketHandler(pkt):
 
             if (ciphereduser+psc) in lastpacketsc: 
                 pktcountpbd += 1
-                if verbose > 1: print "Packet discarded (%s): %s" %(psc,ciphereduser)
+                if verbose > 1: print ("Packet discarded (%s): %s" %(psc,ciphereduser))
                 return  ## silently discard packet, processed before
 
-             if verbose > 1: print "Received ENC (%s): %s,%s,%s,%s" %(psc,ciphereduser,cipheredcommand,cipheredmessage,cipheredpayload)
+            if verbose > 1: print ("Received ENC (%s): %s,%s,%s,%s" %(psc,ciphereduser,cipheredcommand,cipheredmessage,cipheredpayload))
 
             pktcountpb += 1
             decrypted = decrypt(ciphereduser,cipheredcommand,cipheredmessage,cipheredpayload)
@@ -217,11 +222,11 @@ def PacketHandler(pkt):
             decryptedmessage = decrypted[3]
             decryptedpayload = decrypted[4]
             decryptedok = decrypted[5] ## last field is checksum
-            if verbose > 1: print decrypted
-            if verbose > 1: print "Received DEC (%s): %s,%s,%s,%s" %(psc,decrypteduser,decryptedcommand,decryptedmessage,decryptedpayload)
+            if verbose > 1: print (decrypted)
+            if verbose > 1: print ("Received DEC (%s): %s,%s,%s,%s" %(psc,decrypteduser,decryptedcommand,decryptedmessage,decryptedpayload))
 
             if not decryptedok:
-                if verbose: print "Malformed packet received!"
+                if verbose: print ("Malformed packet received!")
                 return
 
             # Add user, if new, to the discovered users dictionary
@@ -230,23 +235,23 @@ def PacketHandler(pkt):
             # Show results of received packet
             pktcountw =+ 1
             if decryptedcommand[:6] == ':msgs:': 
-                print "%s: %s" %(decrypteduser, decryptedpayload)
+                print ("%s: %s" %(decrypteduser, decryptedpayload))
             elif decryptedcommand[:6] == ':ping:':
                 if not psc+decrypteduser in pingsc:
                     pingsc.append(psc+decrypteduser)
                     pingcount=0
-                    print ""
+                    print ("")
                 pingcount += 1
                 sys.stdout.write("\033[F") # Cursor up one line
-                print "chat: %d/%s ping packets received from %s!" %(pingcount,decryptedmessage,decrypteduser)
+                print ("chat: %d/%s ping packets received from %s!" %(pingcount,decryptedmessage,decrypteduser))
             elif decryptedcommand[:6] == ':cmmd:': 
-                print "%s: executed [%s] -> %s" %(decrypteduser, decryptedmessage, decryptedpayload)
+                print ("%s: executed [%s] -> %s" %(decrypteduser, decryptedmessage, decryptedpayload))
             elif decryptedcommand[:6] == ':chat:':
-                print "chat: %s" %decryptedpayload
+                print ("chat: %s" %decryptedpayload)
             elif decryptedcommand[:6] == ':file:':
-                print "chat: file received [%s] -> %s" %(decryptedmessage,decryptedpayload[:8])
+                print ("chat: file received [%s] -> %s" %(decryptedmessage,decryptedpayload[:8]))
             else:
-                print "(%s) %s[%s]: (%s) %s" %(psc,decrypteduser,decryptedcommand,decryptedmessage,decryptedpayload)
+                print ("(%s) %s[%s]: (%s) %s" %(psc,decrypteduser,decryptedcommand,decryptedmessage,decryptedpayload))
 
             if not decryptedcommand[:6] == ':ping:': 
                 lastpacketsc.append(ciphereduser+psc)
@@ -254,12 +259,12 @@ def PacketHandler(pkt):
                 return
 
         except Exception as e:
-            print e.message
+            print (e.message)
 
         try:
             # Resend packet for the first time as a repeater if packet is not ours
             if repeater: 
-                if verbose: print "Repeating packet (%s) of user %s to the air!" %(psc,decrypteduser)
+                if verbose: print ("Repeating packet (%s) of user %s to the air!" %(psc,decrypteduser))
                 sendp(pkt, iface=intfmon, verbose=0, count=pcount)
         except:
             pass 
@@ -277,43 +282,43 @@ def PacketProcessSend(chat):
         encrypted = encrypt(user,command,message)
         chunksize = encrypted[3]
         payload=chatcrypt(message,chunksize)
-            if verbose > 1: print "chat: %s" %(chat[6:])
-        if verbose > 2: print encrypted
+        if verbose > 1: print ("chat: %s" %(chat[6:]))
+        if verbose > 2: print (encrypted)
         PacketSend(encrypted,payload)
     elif command == ':file:':
         encrypted = encrypt(user,command,message)
         chunksize = encrypted[3]
         payload=filecrypt(message,chunksize)
-        if verbose > 1: print encrypted
-            print "chat: sending file %s" %message
+        if verbose > 1: print (encrypted)
+        print ("chat: sending file %s" %message)
         PacketSend(encrypted,payload)
     elif command == ':cmmd:': 
         encrypted = encrypt(user,command,message)
         chunksize = encrypted[3]
-            print "chat: executing command %s" %message
-        if verbose > 2: print encrypted
+        print ("chat: executing command %s" %message)
+        if verbose > 2: print (encrypted)
         payload=cmdcrypt(message,chunksize)
         PacketSend(encrypted,payload)
     elif command == ':usrs:':
-        print "chat: detected users: ",
+        print ("chat: detected users: ",)
         for useruuid,usr in userlist.items():
-            print "%s(%s)" %(usr,useruuid),
-        print ""
+            print ("%s(%s)" %(usr,useruuid),)
+        print ("")
     elif command == ':ping:':
         message = str(pcount)
         encrypted = encrypt(user,command,message)
         chunksize = encrypted[3]
         payload = chatcrypt(chat,chunksize)
-        if verbose > 2: print encrypted
-            print "chat: sending %d ping packets..." %(pcount)  ## investigate why *5
+        if verbose > 2: print (encrypted)
+        print ("chat: sending %d ping packets..." %(pcount))  ## investigate why *5
         PacketSend(encrypted,payload)
     else:
         command = ':msgs:'
         encrypted = encrypt(user,command,message)
         chunksize = encrypted[3]
         payload = chatcrypt(chat,chunksize)
-        if verbose > 2: print encrypted
-            print "me: %s" %(chat)
+        if verbose > 2: print (encrypted)
+        print ("me: %s" %(chat))
         PacketSend(encrypted,payload)
 
 
@@ -347,10 +352,10 @@ def PacketSend(encrypted,payload):
         # pkt.show()
         try:
             sendp(pkt, iface=intfmon, verbose=0, count=pcount)  ## Send packet several times
-            if verbose > 1: print "Packet sent (%s): %s,%s,%s,%s,%s" %(sc,user,uuidsc,command,message,payload)
+            if verbose > 1: print ("Packet sent (%s): %s,%s,%s,%s,%s" %(sc,user,uuidsc,command,message,payload))
             pktcounts += 1
         except Exception as e:
-            print "Cannot send packet! %s" %e.message
+            print ("Cannot send packet! %s" %e.message)
     
 def current_timestamp():
         global bootime
@@ -379,14 +384,15 @@ def getmac(interface):
 
 
 def SetChannel(channel):
-        cmd0 = 'ifconfig %s up >/dev/null 2>&1' % (intfmon)
-        cmd1 = 'iw dev %s set channel %s >/dev/null 2>&1' % (intfmon, channel)
-        try:
-                os.system(cmd0)
-                os.system(cmd1)
-            print "Setting %s to channel: %s and MAC: %s" %(intfmon,channel,remote)
-        except:
-        print "Error setting channel for %s" %intfmon
+    cmd0 = 'ifconfig %s up >/dev/null 2>&1' % (intfmon)
+    cmd1 = 'iw dev %s set channel %s >/dev/null 2>&1' % (intfmon, channel)
+    try:
+        os.system(cmd0)
+        os.system(cmd1)
+        print("Setting %s to channel: %s and MAC: %s" %(intfmon,channel,remote))
+    except Exception as e:
+        print("Error setting channel for %s" %intfmon)
+        print("Error: ", e)
 
 
 def cleanexit():
@@ -394,62 +400,67 @@ def cleanexit():
         PacketProcessSend(":chat:%s left the chat room: %s!" %(username, privateircname)) ## User lefts group
         readline.write_history_file(histfile)
         sys.stdout.write("\033[F") # Cursor up one line
-        print "total packets:%s / processed:%s / written:%s / discarded:%s / sent: %s" %(pktcount,pktcountpb,pktcountw, pktcountpbd,pktcounts)
-    except:
-        print "bye!"
-            pass
+        print("total packets:%s / processed:%s / written:%s / discarded:%s / sent: %s" %(pktcount,pktcountpb,pktcountw, pktcountpbd,pktcounts))
+    except Exception as e:
+        print("bye!")
+        print("Error: ", e)
     exit()
 
 
 ###################### Main loop
 try:
-    print "======================================================="
-    print "      ▌ ▌▗   ▛▀▘▗     ▞▀▖       ▞▀▖        ▞▀▖   "
-    print "      ▌▖▌▄   ▙▄ ▄     ▌         ▌          ▌     "
-    print "      ▙▚▌▐ ▄ ▌  ▐     ▌ ▖overt  ▌ ▖hannel  ▌ ▖hat"
-    print "      ▘ ▘▀   ▘  ▀     ▝▀        ▝▀         ▝▀    "
-    print "      SECRET & HIDDEN CHAT over WI-FI COVERT CHANNEL"
-    print "======================================================="
+    print ("=======================================================")
+    print ("      ▌ ▌▗   ▛▀▘▗     ▞▀▖       ▞▀▖        ▞▀▖   ")
+    print ("      ▌▖▌▄   ▙▄ ▄     ▌         ▌          ▌     ")
+    print ("      ▙▚▌▐ ▄ ▌  ▐     ▌ ▖overt  ▌ ▖hannel  ▌ ▖hat")
+    print ("      ▘ ▘▀   ▘  ▀     ▝▀        ▝▀         ▝▀    ")
+    print ("      SECRET & HIDDEN CHAT over WI-FI COVERT CHANNEL")
+    print ("=======================================================")
 
     # Ask for monitor mode interface
     if len(sys.argv) > 1: 
         if sys.argv[1][:4] == 'wlan':
-            if not InitMon(sys.argv[1]): exit(-1)
+            if not InitMon(sys.argv[1]): 
+                exit(-1)
         elif sys.argv[1][:3] == 'mon':
             intfmon=sys.argv[1]
         else:
-            print "First argument must be wlanx or monx!"
+            print("First argument must be wlanx or monx!")
             exit(-1)
     else:
-            interface = raw_input("Enter your Wi-Fi interface [%s]: " %defaultinterface)
-        if interface == '': interface=defaultinterface
-            if not InitMon(interface): exit(-1)
+        interface = input("Enter your Wi-Fi interface [%s]: " %defaultinterface)
+        if interface == '':
+            interface=defaultinterface
+        if not InitMon(interface): 
+            exit(-1)
 
     # Asks for the alias of the user
     if len(sys.argv) > 2: 
         username=sys.argv[2]
-        print "Using nickname: %s" %username
+        print ("Using nickname: %s" %username)
     else:
-            username = raw_input("Enter your User name or alias: ")
-        if username == '': exit()
-    if username[0] == ":": exit()
+        username = input("Enter your User name or alias: ")
+        if username == '':
+            exit()
+    if username[0] == ":":
+        exit()
     uuid = md5(getmac(intfmon))[7:14]
-        userlist[uuid]=username
+    userlist[uuid] = username
 
     # Define private IRC channel
     if len(sys.argv) > 3: 
-        privateircname=sys.argv[3]
-        print "Using chat room: %s" %privateircname
+        privateircname = sys.argv[3]
+        print("Using chat room: %s" % privateircname)
     else:
-            privateircname = raw_input("Define private IRC channel name: ")
-    privateirc=(privateircname * ((16/len(privateircname))+1))[:16]
+        privateircname = raw_input("Define private IRC channel name: ")
+    privateirc = (privateircname * ((16/len(privateircname))+1))[:16]
 
     # Define private IRC channel password
     if len(sys.argv) > 4: 
         privateirckey=sys.argv[4]
-        print "Using encryption key [AES ECB]: %s" %privateirckey
+        print("Using encryption key [AES ECB]: %s" % privateirckey)
     else:
-            privateirckey = raw_input("Define private IRC robust password: ")
+        privateirckey = raw_input("Define private IRC robust password: ")
     enckey=(privateirckey * ((16/len(privateirckey))+1))[:16]
 
     # If history is on, it will keep caching commands to that file
@@ -480,19 +491,19 @@ try:
     # Set channel and begin sniffing in a new thread
     SetChannel(channel)
     sniffer = Thread(target=packetSniffer)
-        sniffer.daemon = True
-        sniffer.start()
+    sniffer.daemon = True
+    sniffer.start()
 
-    print "======================================================"
-    print "Just write your message and press enter to send!"
-    print "or you can use following commands:\n"
+    print("======================================================")
+    print("Just write your message and press enter to send!")
+    print("or you can use following commands:\n")
 
-    print ":ping:         - ping all the other nodes (test)"
-    print ":usrs:         - show all the detected users"
-    print ":file:filename - send a file to all the users"
-    print ":cmmd:command  - execute local command and send result"
-    print ":exit:         - exit (press Ctrl+C if you are a pro!)"
-    print "======================================================\n"
+    print(":ping:         - ping all the other nodes (test)")
+    print(":usrs:         - show all the detected users")
+    print(":file:filename - send a file to all the users")
+    print(":cmmd:command  - execute local command and send result")
+    print(":exit:         - exit (press Ctrl+C if you are a pro!)")
+    print("======================================================\n")
 
 
 except KeyboardInterrupt:
@@ -501,8 +512,8 @@ except KeyboardInterrupt:
 try:
     PacketProcessSend("%s joined the chat room: %s" %(username,privateircname)) ## User entering group
     while 1:
-            chat = raw_input()
-            if chat != ":exit:":
+        chat = raw_input()
+        if chat != ":exit:":
             sys.stdout.write("\033[F") # Cursor up one line
             if chat != '':
                 PacketProcessSend(chat)
