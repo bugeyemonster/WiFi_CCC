@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-​
 # to-do: send files (receive in sync order and with integrity)
 
